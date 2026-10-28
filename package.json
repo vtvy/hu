@@ -1,0 +1,8 @@
+{
+  "name": "hu-finance",
+  "private": true,
+  "scripts": {
+    "dev": "node preview.cjs",
+    "test": "node --test tests/quick-entry.test.cjs"
+  }
+}
