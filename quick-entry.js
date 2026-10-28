@@ -43,8 +43,9 @@ function suggestedAmounts(jar, kind = 'expense', excludedId) {
   return [...new Set([...learned.slice(0, 4), ...quickDefaults[jar]])].slice(0, 6);
 }
 function readEntryAmount(value, unit) {
-  if (!String(value).trim()) return NaN;
-  const raw = Number(value) * (unit === 'thousand' ? 1000 : 1);
+  const text = String(value).trim();
+  if (!(unit === 'thousand' ? /^\d+(?:[.,]\d{1,3})?$/ : /^\d+$/).test(text)) return NaN;
+  const raw = Number(text.replace(',', '.')) * (unit === 'thousand' ? 1000 : 1);
   const rounded = Math.round(raw);
   return Number.isFinite(raw) && Math.abs(raw - rounded) < 0.0001 &&
     Number.isSafeInteger(rounded) && rounded > 0 && rounded <= 1000000000000 ? rounded : NaN;
@@ -65,7 +66,7 @@ function transaction(id, selected, preset) {
     <div class="entry-selects"><label>Chọn hũ<select name="jar">${jars.map(j => `<option value="${j[0]}" ${jar === j[0] ? 'selected' : ''}>${j[3]} ${j[1]}</option>`).join('')}</select></label>
     <label id="kindLabel">Loại giao dịch<select name="kind"><option value="contribute">Góp vào tích lũy</option><option value="withdraw">Rút / chi từ tích lũy</option></select></label></div>
     <div class="entry-money"><div class="entry-money-head"><label for="entryAmount">Số tiền</label><select name="unit" aria-label="Đơn vị nhập tiền"><option value="thousand">Nghìn đồng (× 1.000)</option><option value="dong">Đồng (₫)</option></select></div>
-    <div class="entry-amount-wrap"><input id="entryAmount" name="amount" type="number" min="0.001" max="1000000000" step="0.001" inputmode="decimal" required placeholder="35" value="${initialAmount ? initialAmount / 1000 : ''}" aria-describedby="amountPreview amountHelp"><span id="amountSuffix" aria-hidden="true">nghìn ₫</span></div>
+    <div class="entry-amount-wrap"><input id="entryAmount" name="amount" type="text" maxlength="16" inputmode="decimal" autocomplete="off" required placeholder="35" value="${initialAmount ? initialAmount / 1000 : ''}" aria-describedby="amountPreview amountHelp"><span id="amountSuffix" aria-hidden="true">nghìn ₫</span></div>
     <div id="amountPreview" class="amount-preview" aria-live="polite"></div><p id="amountHelp">Gõ 35 = 35.000 ₫ · Gõ 35,5 = 35.500 ₫</p></div>
     <section class="entry-suggestions" aria-label="Chọn nhanh số tiền"><div class="entry-section-title">Chạm để chọn số tiền <span id="amountSource"></span></div><div class="amount-chips" id="amountChoices"></div></section>
     <section class="entry-suggestions" id="repeatSection" hidden><div class="entry-section-title">Bạn hay ghi <span>Theo lịch sử của hũ này</span></div><div class="repeat-chips" id="repeatChoices"></div></section>
@@ -100,6 +101,7 @@ function transaction(id, selected, preset) {
     const kind = isSaving ? form.elements.kind.value : 'expense';
     const parsed = readEntryAmount(amountInput.value, unitInput.value);
     const amount = Number.isSafeInteger(parsed) ? parsed : 0;
+    amountInput.setCustomValidity(amountInput.value && !amount ? 'Nhập số tiền lớn hơn 0. Ví dụ: 35 hoặc 35,5 nghìn đồng.' : '');
     $('#amountPreview').textContent = amount ? money(amount) : amountInput.value ? 'Số tiền chưa hợp lệ' : 'Chọn số tiền bên dưới hoặc nhập nhanh';
     const history = entryHistory(selectedJar, kind, id);
     const balance = isSaving ? sum(Object.entries(data.months).filter(([key]) => key <= month)
@@ -142,9 +144,7 @@ function transaction(id, selected, preset) {
     if (event.target === unitInput) {
       const amount = readEntryAmount(amountInput.value, previousUnit);
       previousUnit = unitInput.value;
-      amountInput.min = previousUnit === 'thousand' ? '0.001' : '1';
-      amountInput.step = previousUnit === 'thousand' ? '0.001' : '1';
-      amountInput.max = previousUnit === 'thousand' ? '1000000000' : '1000000000000';
+      amountInput.inputMode = previousUnit === 'thousand' ? 'decimal' : 'numeric';
       $('#amountSuffix').textContent = previousUnit === 'thousand' ? 'nghìn ₫' : '₫';
       $('#amountHelp').textContent = previousUnit === 'thousand' ? 'Gõ 35 = 35.000 ₫ · Gõ 35,5 = 35.500 ₫' : 'Nhập đầy đủ số tiền bằng đồng. Ví dụ: 35000.';
       amountInput.placeholder = previousUnit === 'thousand' ? '35' : '35000';

@@ -9,7 +9,7 @@ function context() {
 }
 test('thousand entry converts to exact integer VND, including existing odd amounts', () => {
   const c = context();
-  for (const [value, expected] of [['35', 35000], ['50', 50000], ['55', 55000], ['35.5', 35500], ['35.123', 35123]]) {
+  for (const [value, expected] of [['35', 35000], ['50', 50000], ['55', 55000], ['35.5', 35500], ['35,5', 35500], ['35.123', 35123]]) {
     assert.equal(c.readEntryAmount(value, 'thousand'), expected);
   }
   assert.equal(c.readEntryAmount('35123', 'dong'), 35123);
