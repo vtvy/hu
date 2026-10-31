@@ -72,6 +72,7 @@ function transaction(id, selected, preset) {
     <section class="entry-suggestions" id="repeatSection" hidden><div class="entry-section-title">Bạn hay ghi <span>Theo lịch sử của hũ này</span></div><div class="repeat-chips" id="repeatChoices"></div></section>
     <label>Ghi chú <span class="optional">Không bắt buộc</span><input name="note" maxlength="160" placeholder="Chọn gợi ý bên dưới hoặc nhập thêm…" value="${esc(editing?.note || preset?.note || '')}"></label>
     <div class="note-chips" id="noteChoices" aria-label="Gợi ý ghi chú"></div>
+    ${editing?.ruleId ? '<p class="planner-help">↻ Bạn đang sửa riêng kỳ này. Để đổi các kỳ sau, dùng “Sửa kỳ tiếp theo” trong Khoản chi định kỳ.</p>' : '<label class="checkline"><input type="checkbox" name="setupRepeat"><span>Lặp lại khoản này<br><small>Chọn chu kỳ và ngày kết thúc sau khi lưu.</small></span></label>'}
     <label>Ngày<input name="date" type="date" min="${min}" max="${max}" value="${editing?.date || date}" required></label>
     <div class="notice balance-hint" id="balanceHint" role="status"></div>
     ${buttons(editing ? 'Lưu thay đổi' : 'Lưu giao dịch')}
@@ -84,11 +85,13 @@ function transaction(id, selected, preset) {
     const entry = {id: editing?.id || crypto.randomUUID(), jar: selectedJar, amount,
       date: selectedDate, note: fd.get('note').trim(),
       kind: saving(selectedJar) ? fd.get('kind') : 'expense'};
+    if (editing?.ruleId) Object.assign(entry, {ruleId: editing.ruleId, recurrenceDate: editing.recurrenceDate, automatic: editing.automatic});
     if (editing) current().tx[current().tx.findIndex(t => t.id === id)] = entry;
     else current().tx.push(entry);
     const ok = persist();
     $('#dialog').close(); render();
     if (ok) toast('Đã lưu ' + money(amount) + ' · ' + jars.find(j => j[0] === selectedJar)[1]);
+    if (ok && fd.get('setupRepeat') && typeof recurringForm === 'function') recurringForm(undefined, undefined, entry);
   });
   const form = $('#form'), amountInput = form.elements.amount, unitInput = form.elements.unit;
   form.elements.kind.value = editing?.kind === 'withdraw' ? 'withdraw' : 'contribute';
