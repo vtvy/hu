@@ -76,9 +76,14 @@
     return count;
   }
   function closingSummary(month) {
-    const living = month.tx.filter(t => !['reserve','wedding'].includes(t.jar)).reduce((s,t)=>s+t.amount,0);
-    const savings = month.tx.filter(t => ['reserve','wedding'].includes(t.jar)).reduce((s,t)=>s+(t.kind==='withdraw'?-t.amount:t.amount),0);
-    return {income:month.budget,living,savings,remaining:month.budget-living-savings,transactions:month.tx.length};
+    const savingJars = new Set(['reserve', 'wedding']);
+    const living = month.tx.filter(t => !savingJars.has(t.jar) && (!t.kind || t.kind === 'expense' || t.kind === 'transfer-out'))
+      .reduce((s, t) => s + t.amount, 0);
+    const savings = month.tx.filter(t => savingJars.has(t.jar))
+      .reduce((s, t) => s + (t.kind === 'withdraw' ? -t.amount : t.amount), 0);
+    const extraIncome = month.tx.filter(t => t.kind === 'income').reduce((s, t) => s + t.amount, 0);
+    const income = month.budget;
+    return {income, living, savings, remaining: income + extraIncome - living - savings, transactions: month.tx.length};
   }
   const api = {validDate,validRule,occurrenceAt,nextDate,monthDates,sync,closingSummary};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
